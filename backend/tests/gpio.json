@@ -1,5 +1,70 @@
 {
-	"feed_sec": 30,
-	"delay_sec": 280,
-	"exhaust_sec": 280
+	"feed": {
+		"state": [
+			{
+				"valve_id": "FEED",
+				"status": true
+			},
+			{
+				"valve_id": "OO",
+				"status": false
+			},
+			{
+				"valve_id": "NN",
+				"status": false
+			}
+		],
+		"time": 60
+	},
+	"delay": {
+		"state": [
+			{
+				"valve_id": "FEED",
+				"status": true
+			},
+			{
+				"valve_id": "OO",
+				"status": false
+			},
+			{
+				"valve_id": "NN",
+				"status": false
+			}
+		],
+		"time": 280
+	},
+	"exhaust": {
+		"state": [
+			{
+				"valve_id": "FEED",
+				"status": true
+			},
+			{
+				"valve_id": "OO",
+				"status": false
+			},
+			{
+				"valve_id": "NN",
+				"status": false
+			}
+		],
+		"time": 280
+	},
+	"end": {
+		"state": [
+			{
+				"valve_id": "FEED",
+				"status": true
+			},
+			{
+				"valve_id": "OO",
+				"status": false
+			},
+			{
+				"valve_id": "NN",
+				"status": false
+			}
+		],
+		"time": 280
+	}
 }

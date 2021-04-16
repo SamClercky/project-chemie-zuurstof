@@ -1,7 +1,7 @@
 use warp::{Filter, Reply};
 
-const STATIC_FILES_DIR: &str = "";
-const STATIC_HOME: &str = "";
+const STATIC_FILES_DIR: &str = "/tmp/www";
+const STATIC_HOME: &str = "index.html";
 
 pub fn static_files() 
     -> impl Filter<Extract = impl Reply, Error=warp::reject::Rejection> + Clone {

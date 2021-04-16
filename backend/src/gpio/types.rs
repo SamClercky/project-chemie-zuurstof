@@ -9,31 +9,11 @@ pub struct GpioInstruction {
     pub end: GpioEvent,
 }
 
-impl GpioInstruction {
-    fn default() -> Self { Self {
-        feed: GpioEvent::default(),
-        delay: GpioEvent::default(),
-        exhaust: GpioEvent::default(),
-        end: GpioEvent::default(),
-    }}
-}
-
 /// Event with all valve states, descriptive
 #[derive(Deserialize, Serialize, Clone)]
 pub struct GpioEvent {
     pub state: [GpioState; 3],
     pub time: u64,
-}
-
-impl GpioEvent {
-    fn default() -> Self { Self {
-        state: [
-            GpioState{ valve_id: Valve::FEED, status: false},
-            GpioState{ valve_id: Valve::NN, status: false},
-            GpioState{ valve_id: Valve::OO, status: false},
-        ],
-        time: 0,
-    }}
 }
 
 /// State of Gpio pin, descriptive 

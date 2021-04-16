@@ -1,8 +1,7 @@
-use tokio::sync::oneshot::{
+use tokio::sync::watch::{
     self,
     Sender,
     Receiver,
-    error::TryRecvError
 };
 use std::time::Duration;
 use log::*;
@@ -20,20 +19,20 @@ impl SystemState {
     } }
 
     pub fn start(&mut self, init_instruction: GpioInstruction) {
-        let (tx, rx) = oneshot::channel();
+        let (tx, rx) = watch::channel(init_instruction);
         self.damaged_shot = Some(tx);
 
         // Start async loop
         tokio::spawn(async move {
             Self::gpio_loop(rx).await;
         });
-        // Send first instruction
-        self.update_instruction(init_instruction);
     }
 
     pub fn update_instruction(&mut self, instruction: GpioInstruction) {
         // instruction set damaged ==> notify evt loop
-        if let Some(sender) = self.damaged_shot.take() {
+        if let Some(sender) = &self.damaged_shot {
+            if sender.is_closed() {error!("No receiver found in async loop");}
+
             sender.send(instruction)
                 .map_err(|_| "Could not write to async loop")
                 .unwrap();
@@ -41,31 +40,18 @@ impl SystemState {
     }
 
     /// Main loop, not for external use
-    async fn gpio_loop(mut recv: Receiver<GpioInstruction>) {
-        let mut instruction = None;
+    async fn gpio_loop(recv: Receiver<GpioInstruction>) {
         loop {
-            // check for damage
-            instruction = match recv.try_recv() {
-                Ok(instr) => {
-                    info!("Instructions damaged, stop loop");
-                    Some(instr)
-                }, // damaged, stop loop
-                Err(TryRecvError::Closed) => {
-                    error!("Loop channel unexpectedly closed");
-                    return;
-                }, // something went wrong, exit loop
-                Err(TryRecvError::Empty) => instruction,
-            };
+            // Fetch current instrucions
+            let instruction = recv.borrow().to_owned();
 
-            // If there is a correct instruction, execute it
-            if let Some(instr) = &instruction {
-                tokio::join!(
-                    Self::exec_evt(&instr.feed),
-                    Self::exec_evt(&instr.delay),
-                    Self::exec_evt(&instr.exhaust),
-                    Self::exec_evt(&instr.end),
-                );
-            }
+            // Execute it
+            tokio::join!(
+                Self::exec_evt(&instruction.feed),
+                Self::exec_evt(&instruction.delay),
+                Self::exec_evt(&instruction.exhaust),
+                Self::exec_evt(&instruction.end),
+            );
         }
     }
 

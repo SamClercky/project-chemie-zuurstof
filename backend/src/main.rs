@@ -1,9 +1,8 @@
 mod routes;
 
-fn main() {
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(routes::routes())
+#[tokio::main]
+async fn main() {
+    pretty_env_logger::init();
+
+    routes::routes().await
 }

@@ -1,9 +1,10 @@
-use warp::{Filter, Rejection};
+use warp::{Filter, Reply};
 
 const STATIC_FILES_DIR: &str = "";
 const STATIC_HOME: &str = "";
 
-pub fn static_files() -> impl Filter {
+pub fn static_files() 
+    -> impl Filter<Extract = impl Reply, Error=warp::reject::Rejection> + Clone {
     let static_route = warp::path("static")
         .and(warp::fs::dir(STATIC_FILES_DIR));
 

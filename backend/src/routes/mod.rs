@@ -1,16 +1,11 @@
-pub mod gpio;
-pub mod static_files;
+mod gpio;
+mod static_files;
 
-use std::convert::Infallible;
-use warp::{self, Filter, Reply};
-
-fn hello() 
-    -> impl Filter<Extract = impl Reply, Error = Infallible> + Clone{
-    warp::any().map(|| "Hallo world")
-}
+use warp::Filter;
 
 pub async fn routes() {
-    let routes = hello();
+    let routes = static_files::static_files()
+        .or(gpio::gpio());
 
     warp::serve(routes)
         .run(([0,0,0,0], 3030))

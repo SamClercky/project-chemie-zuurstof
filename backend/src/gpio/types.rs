@@ -12,7 +12,7 @@ pub struct GpioInstruction {
 /// Event with all valve states, descriptive
 #[derive(Deserialize, Serialize, Clone)]
 pub struct GpioEvent {
-    pub state: [GpioState; 3],
+    pub state: ValveState,
     pub time: u64,
 }
 
@@ -38,3 +38,5 @@ impl Valve {
         }
     }
 }
+
+pub type ValveState = [GpioState; 3];

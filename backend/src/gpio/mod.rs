@@ -1,4 +1,5 @@
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::mpsc;
+use tokio::sync::watch;
 use log::*;
 
 mod types;
@@ -42,10 +43,13 @@ const INIT_INSTRUCTION: GpioInstruction = GpioInstruction {
     }
 };
 
+pub fn get_default_state() -> ValveState {SystemState::get_default_state()}
+
 /// Bootstrap gpio module
-pub async fn bootstap(mut rx: Receiver<GpioInstruction>) {
+pub async fn bootstap(mut rx: mpsc::Receiver<GpioInstruction>, 
+                      tx: Option<watch::Sender<ValveState>>) {
     let mut system = system::SystemState::new();
-    system.start(INIT_INSTRUCTION);
+    system.start(INIT_INSTRUCTION, tx);
 
     loop {
         tokio::select! {

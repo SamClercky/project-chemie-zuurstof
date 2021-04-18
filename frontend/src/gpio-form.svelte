@@ -87,7 +87,7 @@
 		}
 
 		// send payload to server
-		fetch("/gpio", {
+		fetch("/gpio/instruction", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",

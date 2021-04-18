@@ -49,7 +49,7 @@ impl SystemState {
     /// Main loop, not for external use
     async fn gpio_loop(recv: watch::Receiver<GpioInstruction>,
                        update_tx: Option<watch::Sender<ValveState>>) {
-        let (tx, mut rx) = mpsc::channel::<ValveState>(9);
+        let (tx, mut rx) = mpsc::channel::<ValveState>(4);
 
         loop {
             // Fetch current instrucions
@@ -82,14 +82,14 @@ impl SystemState {
         match update_tx.try_send(evt.state.to_owned()) {
             Ok(_) => (),
             Err(TrySendError::Closed(_)) => {error!("update status queue is closed");},
-            Err(TrySendError::Full(_)) => {error!("update status queue is full");}
+            Err(TrySendError::Full(_)) => {warn!("update status queue is full");}
         }
     }
 
     async fn broadcast_state(update_tx: &Option<watch::Sender<ValveState>>,
                             new_data_rx: &mut mpsc::Receiver<ValveState>) {
         if let Some(update_tx) = update_tx {
-            for i in 0..3_u8 {
+            for i in 0..4_u8 {
                 debug!("{}th loop", i);
                 if let Some(state) = new_data_rx.recv().await {
                     update_tx.send(state)

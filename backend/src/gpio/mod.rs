@@ -23,7 +23,7 @@ const INIT_INSTRUCTION: GpioInstruction = GpioInstruction {
             GpioState {valve_id: Valve::OO, status: true },
             GpioState {valve_id: Valve::NN, status: true },
         ],
-        time: 3,
+        time: 500,
     },
     exhaust: GpioEvent {
         state: [
@@ -31,7 +31,7 @@ const INIT_INSTRUCTION: GpioInstruction = GpioInstruction {
             GpioState {valve_id: Valve::OO, status: false },
             GpioState {valve_id: Valve::NN, status: false },
         ],
-        time: 5,
+        time: 6_000,
     },
     end: GpioEvent {
         state: [
@@ -39,7 +39,7 @@ const INIT_INSTRUCTION: GpioInstruction = GpioInstruction {
             GpioState {valve_id: Valve::OO, status: false },
             GpioState {valve_id: Valve::NN, status: false },
         ],
-        time: 10,
+        time: 10_000,
     }
 };
 

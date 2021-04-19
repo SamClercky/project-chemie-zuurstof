@@ -70,7 +70,7 @@ impl SystemState {
 
     /// Execute one Gpio event {feed|delay|exhaust}
     async fn exec_evt(evt: &GpioEvent, update_tx: mpsc::Sender<ValveState>) {
-        tokio::time::sleep(Duration::from_secs(evt.time)).await;
+        tokio::time::sleep(Duration::from_millis(evt.time)).await;
 
         // TODO: Execute feed
         debug!("Evt executed: Time {}", evt.time);

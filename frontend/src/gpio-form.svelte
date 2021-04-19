@@ -1,104 +1,40 @@
 <script lang="typescript">
-	let formStatus = [
-		{
-			id: "feed",
-			"state": [
-				{
-					"valve_id": "FEED",
-					"status": true,
-				},
-				{
-					"valve_id": "OO",
-					"status": false,
-				},
-				{
-					"valve_id": "NN",
-					"status": false,
-				}
-			],
-			"time": 60,
-		},
-		{
-			id: "delay",
-			"state": [
-				{
-					"valve_id": "FEED",
-					"status": false,
-				},
-				{
-					"valve_id": "OO",
-					"status": false,
-				},
-				{
-					"valve_id": "NN",
-					"status": false,
-				}
-			],
-			"time": 280,
-		},
-		{
-			id: "exhaust",
-			"state": [
-				{
-					"valve_id": "FEED",
-					"status": true,
-				},
-				{
-					"valve_id": "OO",
-					"status": false,
-				},
-				{
-					"valve_id": "NN",
-					"status": false,
-				}
-			],
-			"time": 280,
-		},
-		{
-			id: "end",
-			"state": [
-				{
-					"valve_id": "FEED",
-					"status": true,
-				},
-				{
-					"valve_id": "OO",
-					"status": false,
-				},
-				{
-					"valve_id": "NN",
-					"status": false,
-				}
-			],
-			"time": 280,
-		}
-	];
+	import { DEFAULT_DATA_FORM, sendInstructionToServer } from "./data";
+
+	let formStatus = DEFAULT_DATA_FORM;
 
 	function submitGpio(evt: any) {
 		evt.preventDefault();
 
-		let payload: any = {};
-		for (let egpio of formStatus) {
-			console.log(egpio);
-			payload[egpio.id] = {
-				"state": egpio.state,
-				"time": egpio.time,
-			};
-		}
-
-		// send payload to server
-		fetch("/gpio/instruction", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			redirect: "follow",
-			body: JSON.stringify(payload),
-		})
-			.then(resp => console.log(`Gpio server says: ${resp.status}`))
-			.catch(e => console.error(e));
+		sendInstructionToServer(formStatus);
 	}
 </script>
+
+<style>
+	form {
+		display: flex;
+		flex-direction: column;
+	}
+	legend {
+		text-transform: capitalize;
+	}
+
+	#submit {
+		margin: 0px;
+		margin-top: 10px;
+		background: var(--primaryColor);
+		color: white;
+		border: 0px;
+		outline: solid 0px var(--secondaryColor);
+		padding: 10px;
+		font-weight: bold;
+	}
+
+	#submit:hover {
+		outline-width: 5px;
+		transition: outline 0.1s ease-out;
+	}
+</style>
 
 <form on:submit={submitGpio}>
 	{#each formStatus as event (event.id)}

@@ -7,11 +7,15 @@
   "devDependencies": {
     "@snowpack/plugin-svelte": "^3.6.1",
     "@snowpack/plugin-typescript": "^1.2.1",
+    "@types/socket.io": "^2.1.13",
+    "@types/socket.io-client": "^1.4.36",
     "snowpack": "^3.0.1",
     "svelte-preprocess": "^4.7.0",
     "typescipt": "^1.0.0"
   },
   "dependencies": {
+    "socket.io": "^4.0.1",
+    "socket.io-client": "^4.0.1",
     "svelte": "^3.37.0"
   }
 }

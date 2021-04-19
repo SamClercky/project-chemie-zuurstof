@@ -9,7 +9,9 @@ use warp::Filter;
 pub async fn routes(tx: mpsc::Sender<GpioInstruction>,
                     srx: watch::Receiver<ValveState>) {
     let routes = static_files::static_files()
-        .or(gpio::gpio_instruction(tx));
+        .or(gpio::instruction(tx))
+        .or(gpio::get_status(srx.to_owned()))
+        .or(gpio::ws_status(srx.to_owned()));
 
     warp::serve(routes)
         .run(([0,0,0,0], 3030))

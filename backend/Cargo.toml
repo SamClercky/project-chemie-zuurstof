@@ -15,6 +15,8 @@ gpio-cdev = "0.4.0"
 parking_lot = "0.11.1"
 
 tokio = { version = "1.5.0", features = ["full"] }
+tokio-stream = { version = "0.1.5", features = ["sync"]}
+futures = { version = "0.3.14" }
 
 serde = { version = "1.0.117", features = ["derive"]}
 serde_derive = "1.0.117"

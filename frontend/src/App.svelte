@@ -1,6 +1,7 @@
 <script lang='typescript'>
 	import Card from "./card.svelte";
 	import GpioForm from "./gpio-form.svelte";
+	import Monitor from "./monitor.svelte";
 </script>
   
 <style>
@@ -47,10 +48,12 @@
 	<h1><span>C</span>hemie workhorse</h1>
 
 	<div class="wrapper">
-		<Card header="Testing">
+		<Card header="Monitoring">
+			<Monitor></Monitor>
+		</Card>
+		<Card header="New instruction">
 			<GpioForm></GpioForm>
 		</Card>
-		<Card header="Testing"></Card>
 	</div>
 </div>
 

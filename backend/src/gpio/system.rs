@@ -1,9 +1,11 @@
 use mpsc::error::TrySendError;
 use tokio::sync::{
-    watch, mpsc,
+    watch, mpsc, Mutex,
 };
+use std::sync::Arc;
 use std::time::Duration;
 use log::*;
+use std::io::Write;
 
 use super::*;
 
@@ -13,9 +15,11 @@ pub struct SystemState {
 }
 
 impl SystemState {
-    pub fn new() -> Self { Self {
+    pub fn new() -> Self { 
+        Self {
             instructions: None,
-        } }
+        }
+    }
 
     pub fn get_default_state() -> ValveState { [
                 GpioState { valve_id: Valve::FEED, status: true},
@@ -50,6 +54,11 @@ impl SystemState {
     async fn gpio_loop(recv: watch::Receiver<GpioInstruction>,
                        update_tx: Option<watch::Sender<ValveState>>) {
         let (tx, mut rx) = mpsc::channel::<ValveState>(4);
+        let serial_port = Arc::new(Mutex::new(
+                serialport::TTYPort::open(
+                    &serialport::new("/dev/ttyACM0", 9600)
+                ).expect("Failed to open serial port")
+        ));
 
         loop {
             // Fetch current instrucions
@@ -57,10 +66,10 @@ impl SystemState {
 
             // Execute it
             tokio::join!(
-                Self::exec_evt(&instruction.feed, tx.clone()),
-                Self::exec_evt(&instruction.delay, tx.clone()),
-                Self::exec_evt(&instruction.exhaust, tx.clone()),
-                Self::exec_evt(&instruction.end, tx.clone()),
+                Self::exec_evt(&instruction.feed, tx.clone(), serial_port.clone()),
+                Self::exec_evt(&instruction.delay, tx.clone(), serial_port.clone()),
+                Self::exec_evt(&instruction.exhaust, tx.clone(), serial_port.clone()),
+                Self::exec_evt(&instruction.end, tx.clone(), serial_port.clone()),
 
                 // Poll state and send it to other places
                 Self::broadcast_state(&update_tx, &mut rx),
@@ -69,14 +78,28 @@ impl SystemState {
     }
 
     /// Execute one Gpio event {feed|delay|exhaust}
-    async fn exec_evt(evt: &GpioEvent, update_tx: mpsc::Sender<ValveState>) {
+    async fn exec_evt(evt: &GpioEvent, update_tx: mpsc::Sender<ValveState>,
+                      serial_port: Arc<Mutex<serialport::TTYPort>>) {
         tokio::time::sleep(Duration::from_millis(evt.time)).await;
 
         // TODO: Execute feed
         debug!("Evt executed: Time {}", evt.time);
+        let mut payload = String::from("");
         for valve in evt.state.iter() {
             debug!("Pin: {}, status: {}", valve.valve_id.get_pin_nr(), valve.status);
+            let status = if valve.status {"H"} else {"L"};
+            payload += format!("{}{}", status, valve.valve_id.get_pin_nr()).as_str();
         }
+        // send to gpio
+        async move {
+            let mut port = serial_port.lock().await;
+            if let Err(e) = port.write(payload.as_bytes()) {
+                error!("Could not write to serial: {}", e);
+            }
+            if let Err(e) = port.flush() {
+                error!("Could not flush data serial: {}", e);
+            }
+        }.await;
 
         // update state
         match update_tx.try_send(evt.state.to_owned()) {

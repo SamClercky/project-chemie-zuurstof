@@ -72,10 +72,22 @@ impl SystemState {
 
             // Execute it
             tokio::join!(
-                Self::exec_evt(&instruction.feed, tx.clone(), serial_port.clone()),
-                Self::exec_evt(&instruction.delay, tx.clone(), serial_port.clone()),
-                Self::exec_evt(&instruction.exhaust, tx.clone(), serial_port.clone()),
-                Self::exec_evt(&instruction.end, tx.clone(), serial_port.clone()),
+                Self::exec_evt( &instruction.feed,
+                                tx.clone(),
+                                "Feed",
+                                serial_port.clone()),
+                Self::exec_evt( &instruction.delay,
+                                tx.clone(),
+                                "Delay",
+                                serial_port.clone()),
+                Self::exec_evt( &instruction.exhaust,
+                                tx.clone(),
+                                "Exhaust",
+                                serial_port.clone()),
+                Self::exec_evt( &instruction.end,
+                                tx.clone(),
+                                "End",
+                                serial_port.clone()),
 
                 // Poll state and send it to other places
                 Self::broadcast_state(&update_tx, &mut rx),
@@ -84,7 +96,9 @@ impl SystemState {
     }
 
     /// Execute one Gpio event {feed|delay|exhaust}
-    async fn exec_evt(evt: &GpioEvent, update_tx: mpsc::Sender<ValveState>,
+    async fn exec_evt(evt: &GpioEvent,
+                      update_tx: mpsc::Sender<ValveState>,
+                      status_msg: &str,
                       serial_port: Arc<Mutex<serialport::TTYPort>>) {
         tokio::time::sleep(Duration::from_millis(evt.time)).await;
 
@@ -96,6 +110,9 @@ impl SystemState {
             let status = if valve.status {"H"} else {"L"};
             payload += format!("{}{}", status, valve.valve_id.get_pin_nr()).as_str();
         }
+        // send status message
+        payload += format!("M{}: {}ms\n", status_msg, evt.time).as_str();
+
         // send to gpio
         async move {
             let mut port = serial_port.lock().await;

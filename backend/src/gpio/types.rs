@@ -32,9 +32,9 @@ pub enum Valve {
 impl Valve {
     pub fn get_pin_nr(&self) -> usize {
         match self {
-            Self::FEED => 1,
-            Self::OO => 2,
-            Self::NN => 3,
+            Self::FEED => 0,
+            Self::OO => 1,
+            Self::NN => 2,
         }
     }
 }

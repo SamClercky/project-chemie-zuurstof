@@ -59,6 +59,12 @@ impl SystemState {
                     &serialport::new("/dev/ttyACM0", 9600)
                 ).expect("Failed to open serial port")
         ));
+        // set non exclusive
+        {
+            let mut serial_port = serial_port.lock().await;
+            serial_port.set_exclusive(false)
+                .expect("Could not set serial port to not exclusive");
+        }
 
         loop {
             // Fetch current instrucions

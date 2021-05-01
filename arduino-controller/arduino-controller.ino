@@ -11,6 +11,9 @@ char instruction[INSTRUCTION_MAX_LENGTH] = "";
 int  instr_char = 0;
 LiquidCrystal lcd (12, 13, 8, 9, 10, 11);
 
+// remember to reinit lcd after power break
+bool hasRelayChanged = false;
+
 void setup() {
 	// setup serial communication
 	Serial.begin(9600);
@@ -27,12 +30,21 @@ void execCmd(int status) {
 	int pin = Serial.parseInt();
 	if (0 <= pin && pin < VALVE_LENGTH)
 		digitalWrite(VALVE_PINS[pin], status);
+	
+	// notify LCD
+	hasRelayChanged = true;
 }
 
 void writeLcdLine(const char* data, int length) {
 	char buf[16];
 	memset(buf, ' ', sizeof(buf));
 	strncpy(buf, data, length);
+
+	if (hasRelayChanged) {
+		hasRelayChanged = false;
+		lcd.begin(16, 2);
+	}
+
 	lcd.setCursor(0, 0);
 	lcd.write(buf);
 }

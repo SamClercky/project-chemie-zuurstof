@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <LiquidCrystal.h>
+#include <avr/wdt.h>
 
 constexpr int VALVE_LENGTH = 6;
 const int VALVE_PINS[VALVE_LENGTH] = {
@@ -24,6 +25,9 @@ void setup() {
 		pinMode(VALVE_PINS[i], OUTPUT);
 		digitalWrite(VALVE_PINS[i], HIGH); // give initial value
 	}
+
+	// enable wdt to self heal
+	wdt_enable(WDTO_1S);
 }
 
 void execCmd(int status) {
@@ -50,6 +54,8 @@ void writeLcdLine(const char* data, int length) {
 }
 
 void loop() {
+	wdt_reset(); // reset wdt timer
+
 	if (Serial.available() > 0) { // new op ready
 		char newChar = Serial.read();
 		

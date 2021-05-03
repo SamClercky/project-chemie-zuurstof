@@ -43,11 +43,14 @@ const INIT_INSTRUCTION: GpioInstruction = GpioInstruction {
     }
 };
 
-pub fn get_default_state() -> ValveState {SystemState::get_default_state()}
+pub fn get_default_state() -> GpioEvent { GpioEvent {
+    state: SystemState::get_default_state(),
+    time: 0,
+}}
 
 /// Bootstrap gpio module
 pub async fn bootstap(mut rx: mpsc::Receiver<GpioInstruction>, 
-                      tx: Option<watch::Sender<ValveState>>) {
+                      tx: Option<watch::Sender<GpioEvent>>) {
     let mut system = system::SystemState::new();
     system.start(INIT_INSTRUCTION, tx);
 

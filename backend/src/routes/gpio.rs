@@ -4,7 +4,7 @@ use tokio_stream::wrappers::WatchStream;
 use futures::{FutureExt, StreamExt};
 use warp::{self, Filter, ws::Message};
 use warp::Rejection;
-use crate::gpio::{GpioInstruction, ValveState};
+use crate::gpio::{GpioInstruction, GpioEvent};
 use log::*;
 
 /// Middleware to be able to send new instructions to gpio
@@ -33,29 +33,29 @@ pub fn instruction(tx: mpsc::Sender<GpioInstruction>)
 }
 
 /// Middleware to conenct the server with internal gpio
-fn with_gpio_status(rx: watch::Receiver<ValveState>)
-    -> impl Filter<Extract=(watch::Receiver<ValveState>,), Error=Infallible> + Clone {
+fn with_gpio_status(rx: watch::Receiver<GpioEvent>)
+    -> impl Filter<Extract=(watch::Receiver<GpioEvent>,), Error=Infallible> + Clone {
     warp::any().map(move || rx.clone())
 }
 
 /// One off status message
-pub fn get_status(rx: watch::Receiver<ValveState>)
+pub fn get_status(rx: watch::Receiver<GpioEvent>)
     -> impl Filter<Extract=(warp::reply::Json,), Error=Rejection> + Clone {
     warp::get()
         .and(warp::path!("gpio" / "status"))
         .and(with_gpio_status(rx))
-        .map(|status: watch::Receiver<ValveState>| {
+        .map(|status: watch::Receiver<GpioEvent>| {
             warp::reply::json(&*status.borrow())
         })
 }
 
-pub fn ws_status(rx: watch::Receiver<ValveState>) 
+pub fn ws_status(rx: watch::Receiver<GpioEvent>) 
     -> impl Filter<Extract=impl warp::reply::Reply, Error=Rejection> + Clone {
     warp::get()
         .and(warp::path!("gpio" / "ws"))
         .and(warp::ws())
         .and(with_gpio_status(rx))
-        .map(|ws: warp::ws::Ws, status: watch::Receiver<ValveState>| {
+        .map(|ws: warp::ws::Ws, status: watch::Receiver<GpioEvent>| {
             ws.on_upgrade(move |websocket| {
                 handle_ws(websocket, status)
             })
@@ -63,7 +63,7 @@ pub fn ws_status(rx: watch::Receiver<ValveState>)
 }
 
 async fn handle_ws(websocket: warp::ws::WebSocket,
-                  status: watch::Receiver<ValveState>) {
+                  status: watch::Receiver<GpioEvent>) {
     let (tx, _rx) = websocket.split();
     let status = WatchStream::new(status);
 

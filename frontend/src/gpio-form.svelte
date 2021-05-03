@@ -37,18 +37,22 @@
 </style>
 
 <form on:submit={submitGpio}>
-	{#each formStatus as event (event.id)}
+	<div>
+		<label for="all_off">All off:</label>
+		<input type="checkbox" name="all_off" bind:checked={formStatus.all_off}>
+	</div>
+	{#each formStatus.states as event (event.id)}
 		<fieldset>
 			<legend>{event.id}</legend>
 			{#each event.state as status (status.valve_id)}
 				<div>
 					<label for={event.id + status.valve_id}>{status.valve_id} valve:</label>
-					<input type="checkbox" name={event.id + status.valve_id} bind:checked={status.status}>
+					<input type="checkbox" name={event.id + status.valve_id} bind:checked={status.status} disabled={formStatus.all_off}>
 				</div>
 			{/each}
 			<div>
-				<label for={event.id+"time"}>Time:</label>
-				<input type="number" name={event.id+"time"} bind:value={event.time}>
+				<label for={event.id+"time"}>Duration [ms]:</label>
+				<input type="number" name={event.id+"time"} bind:value={event.time} disabled={formStatus.all_off}>
 			</div>
 		</fieldset>
 	{/each}

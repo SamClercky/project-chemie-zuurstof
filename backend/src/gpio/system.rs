@@ -22,13 +22,13 @@ impl SystemState {
     }
 
     pub fn get_default_state() -> ValveState { [
-                GpioState { valve_id: Valve::FEED, status: true},
-                GpioState { valve_id: Valve::OO, status: true},
-                GpioState { valve_id: Valve::NN, status: true},
+                GpioState { valve_id: Valve::FEED, status: false},
+                GpioState { valve_id: Valve::OO, status: false},
+                GpioState { valve_id: Valve::NN, status: false},
     ]}
 
     pub fn start(&mut self, init_instruction: GpioInstruction,
-                 update_tx: Option<watch::Sender<[GpioState; 3]>>) {
+                 update_tx: Option<watch::Sender<GpioEvent>>) {
         let (tx, rx) = watch::channel(init_instruction);
 
         self.instructions = Some(tx);
@@ -52,18 +52,22 @@ impl SystemState {
 
     /// Main loop, not for external use
     async fn gpio_loop(recv: watch::Receiver<GpioInstruction>,
-                       update_tx: Option<watch::Sender<ValveState>>) {
-        let (tx, mut rx) = mpsc::channel::<ValveState>(4);
+                       update_tx: Option<watch::Sender<GpioEvent>>) {
+        let (tx, mut rx) = mpsc::channel::<GpioEvent>(4);
         let serial_port = Arc::new(Mutex::new(
                 serialport::TTYPort::open(
                     &serialport::new("/dev/ttyACM0", 9600)
-                ).expect("Failed to open serial port")
+                ).ok()
         ));
         // set non exclusive
         {
             let mut serial_port = serial_port.lock().await;
-            serial_port.set_exclusive(false)
-                .expect("Could not set serial port to not exclusive");
+            if let Some(serial_port) = &mut *serial_port {
+                serial_port.set_exclusive(false)
+                    .expect("Could not set serial port to not exclusive");
+            } else {
+                error!("Could not open serial port");
+            }
         }
 
         loop {
@@ -74,19 +78,22 @@ impl SystemState {
             tokio::join!(
                 Self::exec_evt( &instruction.feed,
                                 tx.clone(),
-                                "Feed",
+                                format!("Feed: {}", 
+                                    ( instruction.delay.time-instruction.feed.time )/1000), // print in sec
                                 serial_port.clone()),
                 Self::exec_evt( &instruction.delay,
                                 tx.clone(),
-                                "Delay",
+                                format!("Delay: {}", 
+                                    (instruction.exhaust.time-instruction.delay.time)/1000), // print in sec
                                 serial_port.clone()),
                 Self::exec_evt( &instruction.exhaust,
                                 tx.clone(),
-                                "Exhaust",
+                                format!("Exhaust: {}", 
+                                    (instruction.end.time-instruction.exhaust.time)/1000), // print in sec
                                 serial_port.clone()),
                 Self::exec_evt( &instruction.end,
                                 tx.clone(),
-                                "End",
+                                "End".to_string(),
                                 serial_port.clone()),
 
                 // Poll state and send it to other places
@@ -97,13 +104,20 @@ impl SystemState {
 
     /// Execute one Gpio event {feed|delay|exhaust}
     async fn exec_evt(evt: &GpioEvent,
-                      update_tx: mpsc::Sender<ValveState>,
-                      status_msg: &str,
-                      serial_port: Arc<Mutex<serialport::TTYPort>>) {
-        tokio::time::sleep(Duration::from_millis(evt.time)).await;
+                      update_tx: mpsc::Sender<GpioEvent>,
+                      status_msg: String,
+                      serial_port: Arc<Mutex<Option<serialport::TTYPort>>>) {
+        let duration = Duration::from_millis(evt.time);
+        let duration = if duration > Duration::from_secs(60) {
+            warn!("Duration: {}ms is too long, truncating to 60s", duration.as_millis());
+            Duration::from_secs(60)
+        } else {
+            duration
+        };
+        tokio::time::sleep(duration).await;
 
-        // TODO: Execute feed
         debug!("Evt executed: Time {}", evt.time);
+
         let mut payload = String::from("");
         for valve in evt.state.iter() {
             debug!("Pin: {}, status: {}", valve.valve_id.get_pin_nr(), valve.status);
@@ -111,29 +125,32 @@ impl SystemState {
             payload += format!("{}{}", status, valve.valve_id.get_pin_nr()).as_str();
         }
         // send status message
-        payload += format!("M{}: {}ms\n", status_msg, evt.time).as_str();
+        payload += format!("M{}\n", status_msg).as_str();
 
         // send to gpio
         async move {
-            let mut port = serial_port.lock().await;
-            if let Err(e) = port.write(payload.as_bytes()) {
-                error!("Could not write to serial: {}", e);
-            }
-            if let Err(e) = port.flush() {
-                error!("Could not flush data serial: {}", e);
+            if let Some(port) = &mut*serial_port.lock().await {
+                if let Err(e) = port.write(payload.as_bytes()) {
+                    error!("Could not write to serial: {}", e);
+                }
+                if let Err(e) = port.flush() {
+                    error!("Could not flush data serial: {}", e);
+                }
+            } else {
+                warn!("Not sending payload because no port found");
             }
         }.await;
 
         // update state
-        match update_tx.try_send(evt.state.to_owned()) {
+        match update_tx.try_send(evt.to_owned()) {
             Ok(_) => (),
             Err(TrySendError::Closed(_)) => {error!("update status queue is closed");},
             Err(TrySendError::Full(_)) => {warn!("update status queue is full");}
         }
     }
 
-    async fn broadcast_state(update_tx: &Option<watch::Sender<ValveState>>,
-                            new_data_rx: &mut mpsc::Receiver<ValveState>) {
+    async fn broadcast_state(update_tx: &Option<watch::Sender<GpioEvent>>,
+                            new_data_rx: &mut mpsc::Receiver<GpioEvent>) {
         if let Some(update_tx) = update_tx {
             for i in 0..4_u8 {
                 debug!("{}th loop", i);

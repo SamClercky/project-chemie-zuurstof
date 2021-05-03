@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -e /tmp/www ]; then
+if [ ! -e /tmp/www ]; then
 	ln -s "$PWD/frontend/build" /tmp/www
 fi
 

@@ -79,17 +79,17 @@ impl SystemState {
                 Self::exec_evt( &instruction.feed,
                                 tx.clone(),
                                 format!("Feed: {}", 
-                                    ( instruction.delay.time-instruction.feed.time )/1000), // print in sec
+                                    instruction.delay.time-instruction.feed.time), // print in sec
                                 serial_port.clone()),
                 Self::exec_evt( &instruction.delay,
                                 tx.clone(),
                                 format!("Delay: {}", 
-                                    (instruction.exhaust.time-instruction.delay.time)/1000), // print in sec
+                                    instruction.exhaust.time-instruction.delay.time), // print in sec
                                 serial_port.clone()),
                 Self::exec_evt( &instruction.exhaust,
                                 tx.clone(),
                                 format!("Exhaust: {}", 
-                                    (instruction.end.time-instruction.exhaust.time)/1000), // print in sec
+                                    instruction.end.time-instruction.exhaust.time), // print in sec
                                 serial_port.clone()),
                 Self::exec_evt( &instruction.end,
                                 tx.clone(),
